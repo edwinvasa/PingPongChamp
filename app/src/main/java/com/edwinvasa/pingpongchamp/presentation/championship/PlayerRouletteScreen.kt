@@ -10,23 +10,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.edwinvasa.pingpongchamp.domain.model.TournamentMatch
 import com.edwinvasa.pingpongchamp.presentation.main.Routes
 import com.google.gson.Gson
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.util.UUID
 
 @Composable
 fun PlayerRouletteScreen(
     navController: NavController,
     players: List<String>,
-    onMatchSelected: (player1: String, player2: String) -> Unit
+    onAllMatchesGenerated: (List<TournamentMatch>) -> Unit
 ) {
     var remainingPlayers by remember { mutableStateOf(players.toMutableList()) }
     var selectedPlayers by remember { mutableStateOf(listOf<String>()) }
     var highlightedPlayer by remember { mutableStateOf<String?>(null) }
     var isAnimating by remember { mutableStateOf(false) }
+    var matches by remember { mutableStateOf(listOf<TournamentMatch>()) }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -86,8 +89,17 @@ fun PlayerRouletteScreen(
 
                         if (selectedPlayers.size == 2) {
                             delay(1000L)
-                            onMatchSelected(selectedPlayers[0], selectedPlayers[1])
+                            val match = TournamentMatch(
+                                id = UUID.randomUUID().toString(),
+                                player1 = selectedPlayers[0],
+                                player2 = selectedPlayers[1]
+                            )
+                            matches = matches + match
                             selectedPlayers = emptyList()
+
+                            if (remainingPlayers.isEmpty()) {
+                                onAllMatchesGenerated(matches)
+                            }
                         }
                     }
                 }
@@ -101,18 +113,10 @@ fun PlayerRouletteScreen(
         Text("Seleccionados: ${selectedPlayers.joinToString(" vs ")}")
 
         if (remainingPlayers.isEmpty() && selectedPlayers.isEmpty()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = {
-                    val allPlayers = players
-                    val playersJson = URLEncoder.encode(Gson().toJson(allPlayers), StandardCharsets.UTF_8.toString())
-                    navController.navigate(Routes.Bracket.createRoute(playersJson))
-                }
-            ) {
-                Text("Ver Bracket")
+            LaunchedEffect(Unit) {
+                val matchesJson = URLEncoder.encode(Gson().toJson(matches), StandardCharsets.UTF_8.toString())
+                navController.navigate(Routes.Bracket.createRoute(matchesJson))
             }
         }
-
-
     }
 }

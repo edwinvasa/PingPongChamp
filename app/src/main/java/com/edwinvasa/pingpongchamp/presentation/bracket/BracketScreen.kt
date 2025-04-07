@@ -9,35 +9,70 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.edwinvasa.pingpongchamp.domain.model.TournamentMatch
+import com.edwinvasa.pingpongchamp.presentation.main.Routes
 
 @Composable
-fun BracketScreen(players: List<String>) {
-    val viewModel: BracketViewModel = viewModel()
+fun BracketScreen(
+    navController: NavController,
+    initialMatches: List<TournamentMatch>
+) {
+    val viewModel: BracketViewModel = hiltViewModel()
     val matches by viewModel.matches.collectAsState()
+    val champion by viewModel.champion.collectAsState()
 
-    LaunchedEffect(players) {
+    LaunchedEffect(initialMatches) {
         if (matches.isEmpty()) {
-            viewModel.generateInitialMatches(players)
+            viewModel.setInitialMatches(initialMatches)
         }
     }
+
+    LaunchedEffect(champion) {
+        champion?.let { winner ->
+            navController.navigate(Routes.Champion.createRoute(winner))
+        }
+    }
+
+    val matchesByRound = matches.groupBy { it.round }.toSortedMap()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("Bracket del Campeonato", style = MaterialTheme.typography.headlineMedium)
+        Text("Campeonato", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn {
-            items(matches.size) { index ->
-                val match = matches[index]
-                MatchCard(match = match, onWinnerSelected = { winner ->
-                    viewModel.setMatchWinner(match, winner)
-                })
-                Spacer(modifier = Modifier.height(12.dp))
+            matchesByRound.forEach { (roundNumber, roundMatches) ->
+                item {
+                    Text(
+                        text = "Ronda $roundNumber",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+
+                items(roundMatches.size) { index ->
+                    val match = roundMatches[index]
+                    MatchCard(
+                        match = match,
+                        onWinnerSelected = { winner ->
+                            viewModel.setMatchWinnerById(match.id, winner)
+                        },
+                        onStartMatch = {
+                            val route = Routes.ScoreboardWithPlayers.createRoute(
+                                match.player1,
+                                match.player2,
+                                match.id
+                            )
+                            navController.navigate(route)
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
             }
         }
     }
@@ -46,7 +81,8 @@ fun BracketScreen(players: List<String>) {
 @Composable
 fun MatchCard(
     match: TournamentMatch,
-    onWinnerSelected: (String) -> Unit
+    onWinnerSelected: (String) -> Unit,
+    onStartMatch: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -67,6 +103,15 @@ fun MatchCard(
                 PlayerSelectable(name = match.player2, isWinner = match.winner == match.player2) {
                     onWinnerSelected(match.player2)
                 }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = onStartMatch,
+                enabled = match.winner == null
+            ) {
+                Text("Iniciar partido")
             }
         }
     }
