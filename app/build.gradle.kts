@@ -61,6 +61,7 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
     implementation("com.airbnb.android:lottie-compose:6.3.0")
+    implementation("androidx.compose.animation:animation:1.5.0")
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
