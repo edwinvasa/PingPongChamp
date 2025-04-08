@@ -62,6 +62,8 @@ dependencies {
 
     implementation("com.airbnb.android:lottie-compose:6.3.0")
     implementation("androidx.compose.animation:animation:1.5.0")
+    implementation("androidx.compose.material:material-icons-extended")
+
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

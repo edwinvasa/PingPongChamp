@@ -21,6 +21,7 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.edwinvasa.pingpongchamp.R
 import com.edwinvasa.pingpongchamp.presentation.main.Routes
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
@@ -100,97 +101,76 @@ fun ScoreboardScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Column(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.SpaceEvenly,
-                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Marcador", fontSize = 32.sp)
+                val isPortrait = maxHeight > maxWidth
 
-                if (isCustomMatch) {
-                    TextButton(onClick = { viewModel.showDialog.value = true }) {
-                        Text("Editar configuración")
+                if (isPortrait) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.SpaceEvenly,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        ScoreboardContent(
+                            viewModel = viewModel,
+                            isCustomMatch = isCustomMatch,
+                            matchId = matchId,
+                            bracketViewModel = bracketViewModel,
+                            snackbarHostState = snackbarHostState,
+                            coroutineScope = coroutineScope,
+                            showBigWinnerText = showBigWinnerText
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ScoreboardContent(
+                            viewModel = viewModel,
+                            isCustomMatch = isCustomMatch,
+                            matchId = matchId,
+                            bracketViewModel = bracketViewModel,
+                            snackbarHostState = snackbarHostState,
+                            coroutineScope = coroutineScope,
+                            showBigWinnerText = showBigWinnerText,
+                            isHorizontal = true
+                        )
                     }
                 }
-
-                PlayerScoreSection(
-                    name = viewModel.redName.value,
-                    score = viewModel.redPoints.value,
-                    wins = viewModel.redWins.value,
-                    onPlus = { if (!viewModel.isGameOver) viewModel.redPoints.value++ },
-                    onMinus = { if (!viewModel.isGameOver && viewModel.redPoints.value > 0) viewModel.redPoints.value-- },
-                    isServing = viewModel.currentServer == "rojo",
-                    enabled = viewModel.winner.value == null
-                )
-
-                PlayerScoreSection(
-                    name = viewModel.greenName.value,
-                    score = viewModel.greenPoints.value,
-                    wins = viewModel.greenWins.value,
-                    onPlus = { if (!viewModel.isGameOver) viewModel.greenPoints.value++ },
-                    onMinus = { if (!viewModel.isGameOver && viewModel.greenPoints.value > 0) viewModel.greenPoints.value-- },
-                    isServing = viewModel.currentServer == "verde",
-                    enabled = viewModel.winner.value == null
-                )
-
-                EndMatchButton(
-                    viewModel = viewModel,
-                    isGameOver = viewModel.isGameOver,
-                    matchId = matchId,
-                    bracketViewModel = bracketViewModel,
-                    snackbarHostState = snackbarHostState,
-                    scope = coroutineScope
-                )
-
-                viewModel.winner.value?.let {
-                    Text("¡Ganador: $it!", color = MaterialTheme.colorScheme.primary)
-
-                    Button(onClick = { viewModel.resetMatch() }) {
-                        Text("Reiniciar Marcador")
-                    }
-                }
-
-                MatchHistorySection(
-                    matchHistory = viewModel.matchHistory,
-                    redName = viewModel.redName.value,
-                    greenName = viewModel.greenName.value,
-                    showHistory = viewModel.showHistory.value,
-                    onToggleHistory = {
-                        viewModel.showHistory.value = !viewModel.showHistory.value
-                    },
-                    onClearHistory = { viewModel.clearHistory() }
-                )
             }
 
+            // Animaciones y efectos
             if (viewModel.showSuddenDeathAnimation.value) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     LottieAnimationView(animationFile = "animations/sudden_death.json")
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                if (viewModel.showConfettiAnimation.value) {
+            if (viewModel.showConfettiAnimation.value) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     LottieAnimationView(animationFile = "animations/confetti.json", size = 500.dp)
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                if (showBigWinnerText.value && viewModel.winner.value != null) {
+            if (showBigWinnerText.value && viewModel.winner.value != null) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
                         text = "🏆 ¡${viewModel.winner.value} gana! 🏆",
                         fontSize = 30.sp,
@@ -225,4 +205,103 @@ fun LottieAnimationView(animationFile: String, size: Dp = 250.dp) {
         progress = progress,
         modifier = Modifier.size(size)
     )
+}
+
+@Composable
+fun ScoreboardContent(
+    viewModel: ScoreboardViewModel,
+    isCustomMatch: Boolean,
+    matchId: String?,
+    bracketViewModel: BracketViewModel?,
+    snackbarHostState: SnackbarHostState,
+    coroutineScope: CoroutineScope,
+    showBigWinnerText: MutableState<Boolean>,
+    isHorizontal: Boolean = false
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Marcador", fontSize = 32.sp)
+
+        if (isCustomMatch) {
+            TextButton(onClick = { viewModel.showDialog.value = true }) {
+                Text("Editar configuración")
+            }
+        }
+
+        if (isHorizontal) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                PlayerScoreSection(
+                    name = viewModel.redName.value,
+                    score = viewModel.redPoints.value,
+                    wins = viewModel.redWins.value,
+                    onPlus = { if (!viewModel.isGameOver) viewModel.redPoints.value++ },
+                    onMinus = { if (!viewModel.isGameOver && viewModel.redPoints.value > 0) viewModel.redPoints.value-- },
+                    isServing = viewModel.currentServer == "rojo",
+                    enabled = viewModel.winner.value == null
+                )
+
+                PlayerScoreSection(
+                    name = viewModel.greenName.value,
+                    score = viewModel.greenPoints.value,
+                    wins = viewModel.greenWins.value,
+                    onPlus = { if (!viewModel.isGameOver) viewModel.greenPoints.value++ },
+                    onMinus = { if (!viewModel.isGameOver && viewModel.greenPoints.value > 0) viewModel.greenPoints.value-- },
+                    isServing = viewModel.currentServer == "verde",
+                    enabled = viewModel.winner.value == null
+                )
+            }
+        } else {
+            PlayerScoreSection(
+                name = viewModel.redName.value,
+                score = viewModel.redPoints.value,
+                wins = viewModel.redWins.value,
+                onPlus = { if (!viewModel.isGameOver) viewModel.redPoints.value++ },
+                onMinus = { if (!viewModel.isGameOver && viewModel.redPoints.value > 0) viewModel.redPoints.value-- },
+                isServing = viewModel.currentServer == "rojo",
+                enabled = viewModel.winner.value == null
+            )
+
+            PlayerScoreSection(
+                name = viewModel.greenName.value,
+                score = viewModel.greenPoints.value,
+                wins = viewModel.greenWins.value,
+                onPlus = { if (!viewModel.isGameOver) viewModel.greenPoints.value++ },
+                onMinus = { if (!viewModel.isGameOver && viewModel.greenPoints.value > 0) viewModel.greenPoints.value-- },
+                isServing = viewModel.currentServer == "verde",
+                enabled = viewModel.winner.value == null
+            )
+        }
+
+        EndMatchButton(
+            viewModel = viewModel,
+            isGameOver = viewModel.isGameOver,
+            matchId = matchId,
+            bracketViewModel = bracketViewModel,
+            snackbarHostState = snackbarHostState,
+            scope = coroutineScope
+        )
+
+        viewModel.winner.value?.let {
+            Text("¡Ganador: $it!", color = MaterialTheme.colorScheme.primary)
+            Button(onClick = { viewModel.resetMatch() }) {
+                Text("Reiniciar Marcador")
+            }
+        }
+
+        MatchHistorySection(
+            matchHistory = viewModel.matchHistory,
+            redName = viewModel.redName.value,
+            greenName = viewModel.greenName.value,
+            showHistory = viewModel.showHistory.value,
+            onToggleHistory = { viewModel.showHistory.value = !viewModel.showHistory.value },
+            onClearHistory = { viewModel.clearHistory() }
+        )
+    }
 }
