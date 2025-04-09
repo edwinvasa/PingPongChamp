@@ -1,6 +1,5 @@
 package com.edwinvasa.pingpongchamp.presentation.scoreboard
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,7 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,7 +39,7 @@ fun PlayerScoreSection(
             isServing = isServing,
             enabled = enabled
         )
-        Text("$name ha ganado $wins partidos")
+        Text("ganados: $wins")
     }
 }
 
@@ -53,11 +52,6 @@ fun ScoreRow(
     isServing: Boolean = false,
     enabled: Boolean = true
 ) {
-    val animatedColor by animateColorAsState(
-        targetValue = if (isServing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
-        label = "ServeIndicatorColor"
-    )
-
     val scale by animateFloatAsState(
         targetValue = if (isServing) 1.2f else 1f,
         label = "ServeIndicatorScale"
@@ -73,7 +67,7 @@ fun ScoreRow(
         Text(
             text = if (isServing) "🏓 $name" else name,
             fontSize = 20.sp,
-            color = animatedColor,
+            color = LocalContentColor.current,
             modifier = Modifier.scale(scale)
         )
         IconButton(onClick = onMinus, enabled = enabled) { Text("-") }

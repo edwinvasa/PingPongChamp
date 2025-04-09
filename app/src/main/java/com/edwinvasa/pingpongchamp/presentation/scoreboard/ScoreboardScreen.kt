@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -12,8 +13,20 @@ import androidx.navigation.NavController
 import com.edwinvasa.pingpongchamp.presentation.bracket.BracketViewModel
 import kotlinx.coroutines.delay
 import android.media.MediaPlayer
+import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -21,7 +34,6 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.edwinvasa.pingpongchamp.R
 import com.edwinvasa.pingpongchamp.presentation.main.Routes
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
@@ -43,8 +55,8 @@ fun ScoreboardScreen(
         ScoreboardViewModel(
             context = context,
             isCustomMatch = isCustomMatch,
-            initialRedName = player1 ?: "Jugador Rojo",
-            initialGreenName = player2 ?: "Jugador Verde"
+            initialRedName = player1 ?: "Jugador 1",
+            initialGreenName = player2 ?: "Jugador 2"
         )
     }
 
@@ -65,18 +77,49 @@ fun ScoreboardScreen(
         }
     }
 
+    val showSetTransition = remember { mutableStateOf(false) }
+    val showSetWinnerText = remember { mutableStateOf(false) }
+
+    val scaleAnim by animateFloatAsState(
+        targetValue = if (showSetWinnerText.value) 1f else 0.8f,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "ScaleAnim"
+    )
+
+    val alphaAnim by animateFloatAsState(
+        targetValue = if (showSetWinnerText.value) 1f else 0f,
+        animationSpec = tween(durationMillis = 600),
+        label = "alphaAnim"
+    )
+
+    LaunchedEffect(viewModel.showNewSetMessage.value) {
+        if (viewModel.showNewSetMessage.value && viewModel.lastSetWinner.value != null) {
+            playSetWonSound(context)
+
+            showSetTransition.value = true
+            showSetWinnerText.value = true
+
+            delay(3500) // Duración del mensaje
+
+            showSetTransition.value = false
+            showSetWinnerText.value = false
+            viewModel.showNewSetMessage.value = false
+        }
+    }
+
     LaunchedEffect(viewModel.winner.value) {
-        viewModel.winner.value?.let {
-            viewModel.mediaPlayer.start()
+        viewModel.winner.value?.let { winner ->
+            playMatchWonSound(context)
+
             viewModel.showConfettiAnimation.value = true
             showBigWinnerText.value = true
 
-            delay(3500) // tiempo para mostrar confetti + texto grande
+            delay(3500)
 
             viewModel.showConfettiAnimation.value = false
             showBigWinnerText.value = false
 
-            snackbarHostState.showSnackbar("Ganador: $it")
+            snackbarHostState.showSnackbar("🏆 Ganador: $winner")
             delay(2000)
 
             if (shouldReturnAfterMatch) {
@@ -119,10 +162,7 @@ fun ScoreboardScreen(
                             viewModel = viewModel,
                             isCustomMatch = isCustomMatch,
                             matchId = matchId,
-                            bracketViewModel = bracketViewModel,
-                            snackbarHostState = snackbarHostState,
-                            coroutineScope = coroutineScope,
-                            showBigWinnerText = showBigWinnerText
+                            bracketViewModel = bracketViewModel
                         )
                     }
                 } else {
@@ -138,11 +178,51 @@ fun ScoreboardScreen(
                             isCustomMatch = isCustomMatch,
                             matchId = matchId,
                             bracketViewModel = bracketViewModel,
-                            snackbarHostState = snackbarHostState,
-                            coroutineScope = coroutineScope,
-                            showBigWinnerText = showBigWinnerText,
                             isHorizontal = true
                         )
+                    }
+                }
+            }
+
+            if (showSetTransition.value && viewModel.lastSetWinner.value != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xAA000000))
+                        .zIndex(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        AnimatedVisibility(visible = showSetWinnerText.value) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .scale(scaleAnim)
+                                    .alpha(alphaAnim)
+                            ) {
+                                Text(
+                                    text = "🏁 ¡Set finalizado!",
+                                    fontSize = 36.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Ganador: ${viewModel.lastSetWinner.value}",
+                                    fontSize = 28.sp,
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "🏓 Comienza el Set #${viewModel.currentSet.value}",
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -168,15 +248,29 @@ fun ScoreboardScreen(
 
             if (showBigWinnerText.value && viewModel.winner.value != null) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xAA000000))
+                        .zIndex(2f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "🏆 ¡${viewModel.winner.value} gana! 🏆",
-                        fontSize = 30.sp,
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.headlineLarge
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        if (viewModel.showConfettiAnimation.value) {
+                            LottieAnimationView(animationFile = "animations/confetti.json", size = 500.dp)
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "🏆 ¡${viewModel.winner.value} gana el partido! 🏆",
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }
@@ -185,6 +279,22 @@ fun ScoreboardScreen(
 
 fun playSuddenDeathSound(context: Context) {
     val mediaPlayer = MediaPlayer.create(context, R.raw.sudden_death)
+    mediaPlayer.setOnCompletionListener {
+        it.release()
+    }
+    mediaPlayer.start()
+}
+
+fun playSetWonSound(context: Context) {
+    val mediaPlayer = MediaPlayer.create(context, R.raw.tada_set)
+    mediaPlayer.setOnCompletionListener {
+        it.release()
+    }
+    mediaPlayer.start()
+}
+
+fun playMatchWonSound(context: Context) {
+    val mediaPlayer = MediaPlayer.create(context, R.raw.victory_sound)
     mediaPlayer.setOnCompletionListener {
         it.release()
     }
@@ -213,9 +323,6 @@ fun ScoreboardContent(
     isCustomMatch: Boolean,
     matchId: String?,
     bracketViewModel: BracketViewModel?,
-    snackbarHostState: SnackbarHostState,
-    coroutineScope: CoroutineScope,
-    showBigWinnerText: MutableState<Boolean>,
     isHorizontal: Boolean = false
 ) {
     Column(
@@ -232,53 +339,131 @@ fun ScoreboardContent(
             }
         }
 
+        val redColor = viewModel.redPlayerColor.value
+        val redContentColor = if (redColor.isDark()) Color.White else Color.Black
+
+        val greenColor = viewModel.greenPlayerColor.value
+        val greenContentColor = if (greenColor.isDark()) Color.White else Color.Black
+
         if (isHorizontal) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                PlayerScoreSection(
-                    name = viewModel.redName.value,
-                    score = viewModel.redPoints.value,
-                    wins = viewModel.redWins.value,
-                    onPlus = { if (!viewModel.isGameOver) viewModel.redPoints.value++ },
-                    onMinus = { if (!viewModel.isGameOver && viewModel.redPoints.value > 0) viewModel.redPoints.value-- },
-                    isServing = viewModel.currentServer == "rojo",
-                    enabled = viewModel.winner.value == null
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(8.dp)
+                        .background(redColor)
+                        .padding(16.dp)
+                ) {
+                    CompositionLocalProvider(LocalContentColor provides redContentColor) {
+                        PlayerScoreSection(
+                            name = viewModel.redName.value,
+                            score = viewModel.redPoints.value,
+                            wins = viewModel.redWins.value,
+                            onPlus = {
+                                Log.d("Scoreboard", "onPlus presionado para rojo")
+                                if (!viewModel.isGameOver) viewModel.redPoints.value++
+                                viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                            },
+                            onMinus = {
+                                Log.d("Scoreboard", "onMinus presionado para rojo")
+                                if (!viewModel.isGameOver && viewModel.redPoints.value > 0) viewModel.redPoints.value--
+                                viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                            },
+                            isServing = viewModel.currentServer == "rojo",
+                            enabled = viewModel.winner.value == null
+                        )
+                    }
+                }
 
-                PlayerScoreSection(
-                    name = viewModel.greenName.value,
-                    score = viewModel.greenPoints.value,
-                    wins = viewModel.greenWins.value,
-                    onPlus = { if (!viewModel.isGameOver) viewModel.greenPoints.value++ },
-                    onMinus = { if (!viewModel.isGameOver && viewModel.greenPoints.value > 0) viewModel.greenPoints.value-- },
-                    isServing = viewModel.currentServer == "verde",
-                    enabled = viewModel.winner.value == null
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(8.dp)
+                        .background(greenColor)
+                        .padding(16.dp)
+                ) {
+                    CompositionLocalProvider(LocalContentColor provides greenContentColor) {
+                        PlayerScoreSection(
+                            name = viewModel.greenName.value,
+                            score = viewModel.greenPoints.value,
+                            wins = viewModel.greenWins.value,
+                            onPlus = {
+                                Log.d("Scoreboard", "onPlus presionado para verde")
+                                if (!viewModel.isGameOver) viewModel.greenPoints.value++
+                                viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                            },
+                            onMinus = {
+                                Log.d("Scoreboard", "onMinus presionado para verde")
+                                if (!viewModel.isGameOver && viewModel.greenPoints.value > 0) viewModel.greenPoints.value--
+                                viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                            },
+                            isServing = viewModel.currentServer == "verde",
+                            enabled = viewModel.winner.value == null
+                        )
+                    }
+                }
             }
         } else {
-            PlayerScoreSection(
-                name = viewModel.redName.value,
-                score = viewModel.redPoints.value,
-                wins = viewModel.redWins.value,
-                onPlus = { if (!viewModel.isGameOver) viewModel.redPoints.value++ },
-                onMinus = { if (!viewModel.isGameOver && viewModel.redPoints.value > 0) viewModel.redPoints.value-- },
-                isServing = viewModel.currentServer == "rojo",
-                enabled = viewModel.winner.value == null
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .background(redColor)
+                    .padding(16.dp)
+            ) {
+                CompositionLocalProvider(LocalContentColor provides redContentColor) {
+                    PlayerScoreSection(
+                        name = viewModel.redName.value,
+                        score = viewModel.redPoints.value,
+                        wins = viewModel.redWins.value,
+                        onPlus = {
+                            Log.d("Scoreboard", "onPlus presionado para rojo")
+                            if (!viewModel.isGameOver) viewModel.redPoints.value++
+                            viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                        },
+                        onMinus = {
+                            Log.d("Scoreboard", "onMinus presionado para rojo")
+                            if (!viewModel.isGameOver && viewModel.redPoints.value > 0) viewModel.redPoints.value--
+                            viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                        },
+                        isServing = viewModel.currentServer == "rojo",
+                        enabled = viewModel.winner.value == null
+                    )
+                }
+            }
 
-            PlayerScoreSection(
-                name = viewModel.greenName.value,
-                score = viewModel.greenPoints.value,
-                wins = viewModel.greenWins.value,
-                onPlus = { if (!viewModel.isGameOver) viewModel.greenPoints.value++ },
-                onMinus = { if (!viewModel.isGameOver && viewModel.greenPoints.value > 0) viewModel.greenPoints.value-- },
-                isServing = viewModel.currentServer == "verde",
-                enabled = viewModel.winner.value == null
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .background(greenColor)
+                    .padding(16.dp)
+            ) {
+                CompositionLocalProvider(LocalContentColor provides greenContentColor) {
+                    PlayerScoreSection(
+                        name = viewModel.greenName.value,
+                        score = viewModel.greenPoints.value,
+                        wins = viewModel.greenWins.value,
+                        onPlus = {
+                            Log.d("Scoreboard", "onPlus presionado para verde")
+                            if (!viewModel.isGameOver) viewModel.greenPoints.value++
+                            viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                        },
+                        onMinus = {
+                            Log.d("Scoreboard", "onMinus presionado para verde")
+                            if (!viewModel.isGameOver && viewModel.greenPoints.value > 0) viewModel.greenPoints.value--
+                            viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                        },
+                        isServing = viewModel.currentServer == "verde",
+                        enabled = viewModel.winner.value == null
+                    )
+                }
+            }
         }
-
+        /*
         EndMatchButton(
             viewModel = viewModel,
             isGameOver = viewModel.isGameOver,
@@ -286,7 +471,7 @@ fun ScoreboardContent(
             bracketViewModel = bracketViewModel,
             snackbarHostState = snackbarHostState,
             scope = coroutineScope
-        )
+        )*/
 
         viewModel.winner.value?.let {
             Text("¡Ganador: $it!", color = MaterialTheme.colorScheme.primary)
@@ -304,4 +489,8 @@ fun ScoreboardContent(
             onClearHistory = { viewModel.clearHistory() }
         )
     }
+}
+
+fun Color.isDark(): Boolean {
+    return this.luminance() < 0.5
 }
