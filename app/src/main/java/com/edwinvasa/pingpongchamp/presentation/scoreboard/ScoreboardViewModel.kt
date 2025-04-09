@@ -2,27 +2,28 @@ package com.edwinvasa.pingpongchamp.presentation.scoreboard
 
 import android.content.Context
 import android.media.MediaPlayer
-import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import com.edwinvasa.pingpongchamp.R
-
-data class MatchResult(
-    val redPoints: Int,
-    val greenPoints: Int,
-    val winner: String
-)
+import com.edwinvasa.pingpongchamp.presentation.bracket.BracketViewModel
 
 class ScoreboardViewModel(
     context: Context,
     val isCustomMatch: Boolean,
-    initialRedName: String = "Jugador Rojo",
-    initialGreenName: String = "Jugador Verde"
+    initialRedName: String = "Jugador 1",
+    initialGreenName: String = "Jugador 2"
 ) : ViewModel() {
     var suddenDeathEnabled = mutableStateOf(true)
     var showSuddenDeathAnimation = mutableStateOf(false)
     val showConfettiAnimation = mutableStateOf(false)
+    val redPlayerColor = mutableStateOf(Color(0xFFD32F2F))
+    val greenPlayerColor = mutableStateOf(Color(0xFF388E3C))
+
+    val currentSet = mutableStateOf(1)
+    val showNewSetMessage = mutableStateOf(false)
+    val lastSetWinner = mutableStateOf<String?>(null)
 
     var redName = mutableStateOf(initialRedName)
     var greenName = mutableStateOf(initialGreenName)
@@ -38,7 +39,7 @@ class ScoreboardViewModel(
 
     var winner = mutableStateOf<String?>(null)
 
-    var matchHistory = mutableStateListOf<MatchResult>()
+    var matchHistory = mutableStateListOf<MatchPingPongResult>()
     var showHistory = mutableStateOf(true)
 
     var showServeIndicator = mutableStateOf(false)
@@ -73,10 +74,7 @@ class ScoreboardViewModel(
     val currentServer: String?
         get() {
             val totalPoints = redPoints.value + greenPoints.value
-
             if (!showServeIndicator.value) return null
-            Log.d("SaqueDebug", "Red: ${redPoints.value}, Green: ${greenPoints.value}, Winning: ${winningPoints.value}")
-            Log.d("SaqueDebug", "SuddenDeathEnabled: ${suddenDeathEnabled.value}, SuddenDeathActive: $isSuddenDeathActive")
 
             return getCurrentServer(
                 totalPoints = totalPoints,
@@ -92,6 +90,9 @@ class ScoreboardViewModel(
         redWins.value = 0
         greenWins.value = 0
         winner.value = null
+        currentSet.value = 0
+        showNewSetMessage.value = false
+        lastSetWinner.value = null
     }
 
     fun clearHistory() {
@@ -114,6 +115,60 @@ class ScoreboardViewModel(
         return false
     }
 
+    fun tryEndGameAutomatically(matchId: String?, bracketViewModel: BracketViewModel?) {
+        if (!isGameOver) {
+            return
+        }
+
+        if (!canEndGame(
+                redPoints.value,
+                greenPoints.value,
+                winningPoints.value,
+                suddenDeathEnabled.value
+            )
+        ) {
+            return
+        }
+
+        val redWinsGame = redPoints.value > greenPoints.value
+        val greenWinsGame = greenPoints.value > redPoints.value
+
+        when {
+            redWinsGame -> {
+                redWins.value++
+                matchHistory.add(MatchPingPongResult(redPoints.value, greenPoints.value, redName.value))
+                redPoints.value = 0
+                greenPoints.value = 0
+                if (redWins.value == totalGames.value) {
+                    winner.value = redName.value
+                }else {
+                    currentSet.value += 1
+                    showNewSetMessage.value = true
+                    lastSetWinner.value = redName.value
+                }
+                matchId?.let {
+                    bracketViewModel?.setMatchWinnerAndHistoryById(it, redName.value, matchHistory.toList())
+                }
+            }
+
+            greenWinsGame -> {
+                greenWins.value++
+                matchHistory.add(MatchPingPongResult(redPoints.value, greenPoints.value, greenName.value))
+                redPoints.value = 0
+                greenPoints.value = 0
+                if (greenWins.value == totalGames.value) {
+                    winner.value = greenName.value
+                } else {
+                    currentSet.value += 1
+                    showNewSetMessage.value = true
+                    lastSetWinner.value = greenName.value
+                }
+                matchId?.let {
+                    bracketViewModel?.setMatchWinnerAndHistoryById(it, greenName.value, matchHistory.toList())
+                }
+            }
+        }
+    }
 
     override fun onCleared() {
         super.onCleared()

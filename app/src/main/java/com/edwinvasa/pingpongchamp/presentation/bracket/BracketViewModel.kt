@@ -2,6 +2,7 @@ package com.edwinvasa.pingpongchamp.presentation.bracket
 
 import androidx.lifecycle.ViewModel
 import com.edwinvasa.pingpongchamp.domain.model.TournamentMatch
+import com.edwinvasa.pingpongchamp.presentation.scoreboard.MatchPingPongResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,25 @@ class BracketViewModel @Inject constructor() : ViewModel() {
 
     fun setInitialMatches(matches: List<TournamentMatch>) {
         _matches.value = matches
+    }
+
+    fun setMatchWinnerAndHistoryById(matchId: String, winner: String, history: List<MatchPingPongResult>) {
+        val updatedMatches = _matches.value.toMutableList()
+        val matchIndex = updatedMatches.indexOfFirst { it.id == matchId }
+
+        if (matchIndex != -1) {
+            val oldMatch = updatedMatches[matchIndex]
+            val updatedMatch = oldMatch.copy(
+                winner = winner,
+                matchHistory = history,
+                isPlayed = true
+            )
+            updatedMatches[matchIndex] = updatedMatch
+            _matches.value = updatedMatches
+
+            checkForChampion()
+            checkAndGenerateNextRoundIfNeeded(updatedMatch.round)
+        }
     }
 
     fun setMatchWinnerById(matchId: String, winner: String) {
