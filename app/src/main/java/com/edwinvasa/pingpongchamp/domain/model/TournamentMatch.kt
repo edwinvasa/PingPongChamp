@@ -1,5 +1,6 @@
 package com.edwinvasa.pingpongchamp.domain.model
 
+import com.edwinvasa.pingpongchamp.presentation.scoreboard.MatchPingPongResult
 import java.util.UUID
 
 data class TournamentMatch(
@@ -8,5 +9,6 @@ data class TournamentMatch(
     val player2: String,
     var winner: String? = null,
     val round: Int = 1,
-    var isPlayed: Boolean = false
+    var isPlayed: Boolean = false,
+    var matchHistory: List<MatchPingPongResult> = emptyList()
 )

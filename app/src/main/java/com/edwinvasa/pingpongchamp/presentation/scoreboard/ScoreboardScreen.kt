@@ -13,12 +13,14 @@ import androidx.navigation.NavController
 import com.edwinvasa.pingpongchamp.presentation.bracket.BracketViewModel
 import kotlinx.coroutines.delay
 import android.media.MediaPlayer
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -92,6 +94,20 @@ fun ScoreboardScreen(
         label = "alphaAnim"
     )
 
+    val showMatchWinnerText = remember { mutableStateOf(false) }
+
+    val matchWinnerAlpha by animateFloatAsState(
+        targetValue = if (showMatchWinnerText.value) 1f else 0f,
+        animationSpec = tween(durationMillis = 600),
+        label = "matchWinnerAlpha"
+    )
+
+    val matchWinnerScale by animateFloatAsState(
+        targetValue = if (showMatchWinnerText.value) 1f else 0.8f,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "matchWinnerScale"
+    )
+
     LaunchedEffect(viewModel.showNewSetMessage.value) {
         if (viewModel.showNewSetMessage.value && viewModel.lastSetWinner.value != null) {
             playSetWonSound(context)
@@ -113,11 +129,13 @@ fun ScoreboardScreen(
 
             viewModel.showConfettiAnimation.value = true
             showBigWinnerText.value = true
+            showMatchWinnerText.value = true
 
             delay(3500)
 
             viewModel.showConfettiAnimation.value = false
             showBigWinnerText.value = false
+            showMatchWinnerText.value = false
 
             snackbarHostState.showSnackbar("🏆 Ganador: $winner")
             delay(2000)
@@ -153,8 +171,8 @@ fun ScoreboardScreen(
                 if (isPortrait) {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
+                            .fillMaxWidth()
+                            .padding(0.dp),
                         verticalArrangement = Arrangement.SpaceEvenly,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -169,7 +187,7 @@ fun ScoreboardScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(16.dp),
+                            .padding(0.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -237,15 +255,6 @@ fun ScoreboardScreen(
                 }
             }
 
-            if (viewModel.showConfettiAnimation.value) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    LottieAnimationView(animationFile = "animations/confetti.json", size = 500.dp)
-                }
-            }
-
             if (showBigWinnerText.value && viewModel.winner.value != null) {
                 Box(
                     modifier = Modifier
@@ -260,45 +269,25 @@ fun ScoreboardScreen(
                         if (viewModel.showConfettiAnimation.value) {
                             LottieAnimationView(animationFile = "animations/confetti.json", size = 500.dp)
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text(
-                            text = "🏆 ¡${viewModel.winner.value} gana el partido! 🏆",
-                            fontSize = 34.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            textAlign = TextAlign.Center
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .scale(matchWinnerScale)
+                                .alpha(matchWinnerAlpha)
+                        ) {
+                            Text(
+                                text = "🏆 ¡${viewModel.winner.value} gana el partido! 🏆",
+                                fontSize = 36.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
         }
     }
-}
-
-fun playSuddenDeathSound(context: Context) {
-    val mediaPlayer = MediaPlayer.create(context, R.raw.sudden_death)
-    mediaPlayer.setOnCompletionListener {
-        it.release()
-    }
-    mediaPlayer.start()
-}
-
-fun playSetWonSound(context: Context) {
-    val mediaPlayer = MediaPlayer.create(context, R.raw.tada_set)
-    mediaPlayer.setOnCompletionListener {
-        it.release()
-    }
-    mediaPlayer.start()
-}
-
-fun playMatchWonSound(context: Context) {
-    val mediaPlayer = MediaPlayer.create(context, R.raw.victory_sound)
-    mediaPlayer.setOnCompletionListener {
-        it.release()
-    }
-    mediaPlayer.start()
 }
 
 @Composable
@@ -325,162 +314,156 @@ fun ScoreboardContent(
     bracketViewModel: BracketViewModel?,
     isHorizontal: Boolean = false
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Marcador", fontSize = 32.sp)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
 
-        if (isCustomMatch) {
-            TextButton(onClick = { viewModel.showDialog.value = true }) {
-                Text("Editar configuración")
-            }
-        }
+            val redColor = viewModel.redPlayerColor.value
+            val redContentColor = if (redColor.isDark()) Color.White else Color.Black
 
-        val redColor = viewModel.redPlayerColor.value
-        val redContentColor = if (redColor.isDark()) Color.White else Color.Black
+            val greenColor = viewModel.greenPlayerColor.value
+            val greenContentColor = if (greenColor.isDark()) Color.White else Color.Black
 
-        val greenColor = viewModel.greenPlayerColor.value
-        val greenContentColor = if (greenColor.isDark()) Color.White else Color.Black
-
-        if (isHorizontal) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(8.dp)
-                        .background(redColor)
-                        .padding(16.dp)
-                ) {
-                    CompositionLocalProvider(LocalContentColor provides redContentColor) {
+            if (isHorizontal) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Encabezado fijo arriba
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp)
+                            .background(Color.White),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "Marcador",
+                            style = MaterialTheme.typography.headlineMedium,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                        //if (isCustomMatch) {
+                            IconButton(onClick = { viewModel.showDialog.value = true }) {
+                                Icon(Icons.Default.Settings, contentDescription = "Configuración")
+                            }
+                        //}
+                    }
+                    // Jugadores: dividido en dos columnas
+                    Row(modifier = Modifier.weight(1f)) {
                         PlayerScoreSection(
                             name = viewModel.redName.value,
                             score = viewModel.redPoints.value,
                             wins = viewModel.redWins.value,
                             onPlus = {
-                                Log.d("Scoreboard", "onPlus presionado para rojo")
                                 if (!viewModel.isGameOver) viewModel.redPoints.value++
                                 viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
                             },
                             onMinus = {
-                                Log.d("Scoreboard", "onMinus presionado para rojo")
                                 if (!viewModel.isGameOver && viewModel.redPoints.value > 0) viewModel.redPoints.value--
                                 viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
                             },
                             isServing = viewModel.currentServer == "rojo",
-                            enabled = viewModel.winner.value == null
+                            enabled = viewModel.winner.value == null,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .background(redColor),
+                            isLeftPlayer = true,
+                            contentColor = redContentColor
                         )
-                    }
-                }
 
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(8.dp)
-                        .background(greenColor)
-                        .padding(16.dp)
-                ) {
-                    CompositionLocalProvider(LocalContentColor provides greenContentColor) {
                         PlayerScoreSection(
                             name = viewModel.greenName.value,
                             score = viewModel.greenPoints.value,
                             wins = viewModel.greenWins.value,
                             onPlus = {
-                                Log.d("Scoreboard", "onPlus presionado para verde")
                                 if (!viewModel.isGameOver) viewModel.greenPoints.value++
                                 viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
                             },
                             onMinus = {
-                                Log.d("Scoreboard", "onMinus presionado para verde")
                                 if (!viewModel.isGameOver && viewModel.greenPoints.value > 0) viewModel.greenPoints.value--
                                 viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
                             },
                             isServing = viewModel.currentServer == "verde",
-                            enabled = viewModel.winner.value == null
+                            enabled = viewModel.winner.value == null,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .background(greenColor),
+                            isLeftPlayer = false,
+                            contentColor = greenContentColor
                         )
                     }
                 }
-            }
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-                    .background(redColor)
-                    .padding(16.dp)
-            ) {
-                CompositionLocalProvider(LocalContentColor provides redContentColor) {
+            } else {
+                // Orientación vertical
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Encabezado fijo arriba
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp)
+                            .background(Color.White),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "Marcador",
+                            style = MaterialTheme.typography.headlineMedium,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                        //if (isCustomMatch) {
+                            IconButton(onClick = { viewModel.showDialog.value = true }) {
+                                Icon(Icons.Default.Settings, contentDescription = "Configuración")
+                            }
+                        //}
+                    }
+                    // Jugadores: dividido en dos filas
                     PlayerScoreSection(
                         name = viewModel.redName.value,
                         score = viewModel.redPoints.value,
                         wins = viewModel.redWins.value,
                         onPlus = {
-                            Log.d("Scoreboard", "onPlus presionado para rojo")
                             if (!viewModel.isGameOver) viewModel.redPoints.value++
                             viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
                         },
                         onMinus = {
-                            Log.d("Scoreboard", "onMinus presionado para rojo")
                             if (!viewModel.isGameOver && viewModel.redPoints.value > 0) viewModel.redPoints.value--
                             viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
                         },
                         isServing = viewModel.currentServer == "rojo",
-                        enabled = viewModel.winner.value == null
+                        enabled = viewModel.winner.value == null,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .background(redColor),
+                        isLeftPlayer = true, // Jugador superior
+                        contentColor = redContentColor
                     )
-                }
-            }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-                    .background(greenColor)
-                    .padding(16.dp)
-            ) {
-                CompositionLocalProvider(LocalContentColor provides greenContentColor) {
                     PlayerScoreSection(
                         name = viewModel.greenName.value,
                         score = viewModel.greenPoints.value,
                         wins = viewModel.greenWins.value,
                         onPlus = {
-                            Log.d("Scoreboard", "onPlus presionado para verde")
                             if (!viewModel.isGameOver) viewModel.greenPoints.value++
                             viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
                         },
                         onMinus = {
-                            Log.d("Scoreboard", "onMinus presionado para verde")
                             if (!viewModel.isGameOver && viewModel.greenPoints.value > 0) viewModel.greenPoints.value--
                             viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
                         },
                         isServing = viewModel.currentServer == "verde",
-                        enabled = viewModel.winner.value == null
+                        enabled = viewModel.winner.value == null,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .background(greenColor),
+                        isLeftPlayer = false, // Jugador inferior
+                        contentColor = greenContentColor,
+                        showWinsTopRight = true
                     )
                 }
             }
         }
-        /*
-        EndMatchButton(
-            viewModel = viewModel,
-            isGameOver = viewModel.isGameOver,
-            matchId = matchId,
-            bracketViewModel = bracketViewModel,
-            snackbarHostState = snackbarHostState,
-            scope = coroutineScope
-        )*/
-
-        viewModel.winner.value?.let {
-            Text("¡Ganador: $it!", color = MaterialTheme.colorScheme.primary)
-            Button(onClick = { viewModel.resetMatch() }) {
-                Text("Reiniciar Marcador")
-            }
-        }
-
-        MatchHistorySection(
+        MatchHistoryFloatingPanel(
             matchHistory = viewModel.matchHistory,
             redName = viewModel.redName.value,
             greenName = viewModel.greenName.value,
@@ -488,9 +471,55 @@ fun ScoreboardContent(
             onToggleHistory = { viewModel.showHistory.value = !viewModel.showHistory.value },
             onClearHistory = { viewModel.clearHistory() }
         )
+
+        if(isCustomMatch) {
+            viewModel.winner.value?.let {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 90.dp)
+                        .background(
+                            Color.White.copy(alpha = 0.9f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(16.dp)
+                ) {
+                    Text("🏆 ¡Ganador: $it!", color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { viewModel.resetMatch() }) {
+                        Text("Reiniciar Marcador")
+                    }
+                }
+            }
+        }
     }
 }
 
 fun Color.isDark(): Boolean {
     return this.luminance() < 0.5
 }
+
+fun playSuddenDeathSound(context: Context) {
+    val mediaPlayer = MediaPlayer.create(context, R.raw.sudden_death)
+    mediaPlayer.setOnCompletionListener {
+        it.release()
+    }
+    mediaPlayer.start()
+}
+
+fun playSetWonSound(context: Context) {
+    val mediaPlayer = MediaPlayer.create(context, R.raw.tada_set)
+    mediaPlayer.setOnCompletionListener {
+        it.release()
+    }
+    mediaPlayer.start()
+}
+
+fun playMatchWonSound(context: Context) {
+    val mediaPlayer = MediaPlayer.create(context, R.raw.victory_sound)
+    mediaPlayer.setOnCompletionListener {
+        it.release()
+    }
+    mediaPlayer.start()
+}
+

@@ -1,19 +1,23 @@
 package com.edwinvasa.pingpongchamp.presentation.scoreboard
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -25,53 +29,66 @@ fun PlayerScoreSection(
     onPlus: () -> Unit,
     onMinus: () -> Unit,
     isServing: Boolean = false,
-    enabled: Boolean = true
+    isLeftPlayer: Boolean = true,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+    contentColor: Color = Color.Unspecified,
+    showWinsTopRight: Boolean = false,
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth()
+    CompositionLocalProvider(
+        LocalContentColor provides contentColor
     ) {
-        ScoreRow(
-            name = name,
-            score = score,
-            onPlus = onPlus,
-            onMinus = onMinus,
-            isServing = isServing,
-            enabled = enabled
-        )
-        Text("ganados: $wins")
-    }
-}
+        Box(modifier = modifier) {
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(8.dp)
+                    .align(Alignment.TopCenter),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
+                Text(
+                    text = if (isServing) "🏓 $name" else name,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
-@Composable
-fun ScoreRow(
-    name: String,
-    score: Int,
-    onPlus: () -> Unit,
-    onMinus: () -> Unit,
-    isServing: Boolean = false,
-    enabled: Boolean = true
-) {
-    val scale by animateFloatAsState(
-        targetValue = if (isServing) 1.2f else 1f,
-        label = "ServeIndicatorScale"
-    )
+                Spacer(modifier = Modifier.height(46.dp))
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        Text(
-            text = if (isServing) "🏓 $name" else name,
-            fontSize = 20.sp,
-            color = LocalContentColor.current,
-            modifier = Modifier.scale(scale)
-        )
-        IconButton(onClick = onMinus, enabled = enabled) { Text("-") }
-        Text("$score", fontSize = 24.sp)
-        IconButton(onClick = onPlus, enabled = enabled) { Text("+") }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    IconButton(onClick = onMinus, enabled = enabled) { Text("-") }
+                    Text(
+                        "$score",
+                        fontSize = 105.sp,
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
+                    IconButton(onClick = onPlus, enabled = enabled) { Text("+") }
+                }
+            }
+
+            if (showWinsTopRight) {
+                Text(
+                    text = "$wins",
+                    fontSize = 75.sp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            } else {
+                Text(
+                    text = "$wins",
+                    fontSize = 75.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .align(if (isLeftPlayer) Alignment.BottomEnd else Alignment.BottomStart)
+                        .padding(8.dp)
+                )
+            }
+        }
     }
 }

@@ -44,7 +44,8 @@ fun MatchConfigurationDialog(viewModel: ScoreboardViewModel) {
                 OutlinedTextField(
                     value = viewModel.redName.value,
                     onValueChange = { viewModel.redName.value = it },
-                    label = { Text("Nombre del jugador 1") }
+                    label = { Text("Nombre del jugador 1") },
+                    enabled = viewModel.isCustomMatch
                 )
                 ColorPaletteSelector(
                     selectedColor = viewModel.redPlayerColor.value,
@@ -54,7 +55,8 @@ fun MatchConfigurationDialog(viewModel: ScoreboardViewModel) {
                 OutlinedTextField(
                     value = viewModel.greenName.value,
                     onValueChange = { viewModel.greenName.value = it },
-                    label = { Text("Nombre del jugador 2") }
+                    label = { Text("Nombre del jugador 2") },
+                    enabled = viewModel.isCustomMatch
                 )
                 ColorPaletteSelector(
                     selectedColor = viewModel.greenPlayerColor.value,

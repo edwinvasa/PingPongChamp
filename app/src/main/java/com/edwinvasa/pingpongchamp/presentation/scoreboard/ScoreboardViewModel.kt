@@ -9,12 +9,6 @@ import androidx.lifecycle.ViewModel
 import com.edwinvasa.pingpongchamp.R
 import com.edwinvasa.pingpongchamp.presentation.bracket.BracketViewModel
 
-data class MatchResult(
-    val redPoints: Int,
-    val greenPoints: Int,
-    val winner: String
-)
-
 class ScoreboardViewModel(
     context: Context,
     val isCustomMatch: Boolean,
@@ -45,7 +39,7 @@ class ScoreboardViewModel(
 
     var winner = mutableStateOf<String?>(null)
 
-    var matchHistory = mutableStateListOf<MatchResult>()
+    var matchHistory = mutableStateListOf<MatchPingPongResult>()
     var showHistory = mutableStateOf(true)
 
     var showServeIndicator = mutableStateOf(false)
@@ -142,7 +136,7 @@ class ScoreboardViewModel(
         when {
             redWinsGame -> {
                 redWins.value++
-                matchHistory.add(MatchResult(redPoints.value, greenPoints.value, redName.value))
+                matchHistory.add(MatchPingPongResult(redPoints.value, greenPoints.value, redName.value))
                 redPoints.value = 0
                 greenPoints.value = 0
                 if (redWins.value == totalGames.value) {
@@ -153,13 +147,13 @@ class ScoreboardViewModel(
                     lastSetWinner.value = redName.value
                 }
                 matchId?.let {
-                    bracketViewModel?.setMatchWinnerById(it, redName.value)
+                    bracketViewModel?.setMatchWinnerAndHistoryById(it, redName.value, matchHistory.toList())
                 }
             }
 
             greenWinsGame -> {
                 greenWins.value++
-                matchHistory.add(MatchResult(redPoints.value, greenPoints.value, greenName.value))
+                matchHistory.add(MatchPingPongResult(redPoints.value, greenPoints.value, greenName.value))
                 redPoints.value = 0
                 greenPoints.value = 0
                 if (greenWins.value == totalGames.value) {
@@ -170,7 +164,7 @@ class ScoreboardViewModel(
                     lastSetWinner.value = greenName.value
                 }
                 matchId?.let {
-                    bracketViewModel?.setMatchWinnerById(it, greenName.value)
+                    bracketViewModel?.setMatchWinnerAndHistoryById(it, greenName.value, matchHistory.toList())
                 }
             }
         }

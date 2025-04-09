@@ -1,18 +1,19 @@
 package com.edwinvasa.pingpongchamp.presentation.bracket
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.edwinvasa.pingpongchamp.domain.model.TournamentMatch
 import com.edwinvasa.pingpongchamp.presentation.main.Routes
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import kotlin.math.ceil
+import kotlin.math.log2
 
 @Composable
 fun BracketScreen(
@@ -22,6 +23,8 @@ fun BracketScreen(
     val viewModel: BracketViewModel = hiltViewModel()
     val matches by viewModel.matches.collectAsState()
     val champion by viewModel.champion.collectAsState()
+
+    val scrollState = rememberScrollState()
 
     LaunchedEffect(initialMatches) {
         if (matches.isEmpty()) {
@@ -37,96 +40,63 @@ fun BracketScreen(
 
     val matchesByRound = matches.groupBy { it.round }.toSortedMap()
 
+    // Calcular el número total de rondas basado en los matches iniciales
+    val initialPlayerCount = initialMatches.size * 2
+    val expectedTotalRounds = ceil(log2(initialPlayerCount.toDouble())).toInt()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
+            .verticalScroll(scrollState)
     ) {
-        Text("Campeonato", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyColumn {
-            matchesByRound.forEach { (roundNumber, roundMatches) ->
-                item {
-                    Text(
-                        text = "Ronda $roundNumber",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                }
-
-                items(roundMatches.size) { index ->
-                    val match = roundMatches[index]
-                    MatchCard(
-                        match = match,
-                        onWinnerSelected = { winner ->
-                            viewModel.setMatchWinnerById(match.id, winner)
-                        },
-                        onStartMatch = {
-                            val route = Routes.ScoreboardWithPlayers.createRoute(
-                                match.player1,
-                                match.player2,
-                                match.id
-                            )
-                            navController.navigate(route)
-                        }
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun MatchCard(
-    match: TournamentMatch,
-    onWinnerSelected: (String) -> Unit,
-    onStartMatch: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        Text(
+            text = "TORNEO DE PING PONG",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Partido:")
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                PlayerSelectable(name = match.player1, isWinner = match.winner == match.player1) {
-                    onWinnerSelected(match.player1)
-                }
-                Text("vs")
-                PlayerSelectable(name = match.player2, isWinner = match.winner == match.player2) {
-                    onWinnerSelected(match.player2)
-                }
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            matchesByRound.forEach { (roundNumber, roundMatches) ->
+                val roundLabel = when (roundNumber) {
+                    expectedTotalRounds -> "Final"
+                    expectedTotalRounds - 1 -> "Semifinal"
+                    else -> "Ronda $roundNumber"
+                }
 
-            Button(
-                onClick = onStartMatch,
-                enabled = match.winner == null
-            ) {
-                Text("Iniciar partido")
+                item {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.width(180.dp)
+                    ) {
+                        Text(
+                            text = roundLabel,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        roundMatches.forEach { match ->
+                            MatchBox(
+                                match = match,
+                                onWinnerSelected = { winner ->
+                                    viewModel.setMatchWinnerById(match.id, winner)
+                                },
+                                onStartMatch = {
+                                    val route = Routes.ScoreboardWithPlayers.createRoute(
+                                        match.player1,
+                                        match.player2,
+                                        match.id
+                                    )
+                                    navController.navigate(route)
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
-    }
-}
-
-@Composable
-fun PlayerSelectable(name: String, isWinner: Boolean, onClick: () -> Unit) {
-    val backgroundColor = if (isWinner) Color.Green else Color.LightGray
-
-    Box(
-        modifier = Modifier
-            .background(backgroundColor)
-            .clickable { onClick() }
-            .padding(8.dp)
-    ) {
-        Text(name)
     }
 }
