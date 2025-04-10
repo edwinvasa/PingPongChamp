@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.edwinvasa.pingpongchamp.domain.model.TournamentMatch
+import com.edwinvasa.pingpongchamp.presentation.championship.PlayerSlot
 
 @Composable
 fun MatchBox(

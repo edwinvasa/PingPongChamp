@@ -8,7 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.edwinvasa.pingpongchamp.presentation.scoreboard.MatchPingPongResult
+import com.edwinvasa.pingpongchamp.domain.model.MatchPingPongResult
 
 @Composable
 fun MatchHistoryList(player1: String, player2: String, matchHistory: List<MatchPingPongResult>) {

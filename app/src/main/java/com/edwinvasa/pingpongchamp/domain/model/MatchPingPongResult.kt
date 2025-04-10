@@ -1,4 +1,4 @@
-package com.edwinvasa.pingpongchamp.presentation.scoreboard
+package com.edwinvasa.pingpongchamp.domain.model
 
 data class MatchPingPongResult(
     val redPoints: Int,

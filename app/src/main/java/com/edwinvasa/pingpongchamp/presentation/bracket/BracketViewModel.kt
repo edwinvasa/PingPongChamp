@@ -2,7 +2,7 @@ package com.edwinvasa.pingpongchamp.presentation.bracket
 
 import androidx.lifecycle.ViewModel
 import com.edwinvasa.pingpongchamp.domain.model.TournamentMatch
-import com.edwinvasa.pingpongchamp.presentation.scoreboard.MatchPingPongResult
+import com.edwinvasa.pingpongchamp.domain.model.MatchPingPongResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow

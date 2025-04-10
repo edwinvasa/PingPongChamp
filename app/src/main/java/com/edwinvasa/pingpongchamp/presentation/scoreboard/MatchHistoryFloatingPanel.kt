@@ -29,6 +29,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import com.edwinvasa.pingpongchamp.domain.model.MatchPingPongResult
 
 @Composable
 fun MatchHistoryFloatingPanel(

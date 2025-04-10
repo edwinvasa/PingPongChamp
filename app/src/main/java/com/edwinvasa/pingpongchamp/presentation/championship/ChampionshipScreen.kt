@@ -1,24 +1,28 @@
 package com.edwinvasa.pingpongchamp.presentation.championship
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.edwinvasa.pingpongchamp.R
 import com.edwinvasa.pingpongchamp.presentation.main.Routes
 import com.google.gson.Gson
 import kotlinx.coroutines.delay
@@ -32,6 +36,9 @@ fun ChampionshipScreen(navController: NavController) {
     var players by remember { mutableStateOf(listOf<String>()) }
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
+    var showBracketInfo by remember { mutableStateOf(false) }
+    var showRoundRobinInfo by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -137,24 +144,114 @@ fun ChampionshipScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Button(
-                onClick = {
-                    val playersJson = URLEncoder.encode(
-                        Gson().toJson(players),
-                        StandardCharsets.UTF_8.toString()
-                    )
-                    navController.navigate(Routes.PlayerRoulette.createRoute(playersJson))
-                },
-                enabled = players.size >= 2,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = "Iniciar sorteo")
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Sortear partidos")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Button(
+                        onClick = {
+                            val playersJson = URLEncoder.encode(
+                                Gson().toJson(players),
+                                StandardCharsets.UTF_8.toString()
+                            )
+                            navController.navigate(Routes.PlayerRoulette.createRoute(playersJson))
+                        },
+                        enabled = players.size >= 2,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Bracket")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Torneo Eliminatorio")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = { showBracketInfo = true },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = "Info Bracket")
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Button(
+                        onClick = {
+                            val playersJson = URLEncoder.encode(
+                                Gson().toJson(players),
+                                StandardCharsets.UTF_8.toString()
+                            )
+                            navController.navigate(Routes.RoundRobin.createRoute(playersJson))
+                        },
+                        enabled = players.size >= 2,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Round Robin")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Torneo Todos contra todos")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = { showRoundRobinInfo = true },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = "Info Round Robin")
+                    }
+                }
             }
         }
+    }
+
+    AnimatedVisibility(
+        visible = showBracketInfo,
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
+        AlertDialog(
+            onDismissRequest = { showBracketInfo = false },
+            confirmButton = {
+                TextButton(onClick = { showBracketInfo = false }) {
+                    Text("Entendido")
+                }
+            },
+            title = { Text("¿Qué es un torneo eliminatorio?") },
+            text = {
+                Column {
+                    Text("En este formato, los jugadores se enfrentan en rondas y el perdedor queda eliminado. ¡Solo uno puede ser campeón!")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Image(painter = painterResource(id = R.drawable.bracket_example), contentDescription = null)
+                }
+            }
+        )
+    }
+
+    AnimatedVisibility(
+        visible = showRoundRobinInfo,
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
+        AlertDialog(
+            onDismissRequest = { showRoundRobinInfo = false },
+            confirmButton = {
+                TextButton(onClick = { showRoundRobinInfo = false }) {
+                    Text("Entendido")
+                }
+            },
+            title = { Text("¿Qué es un torneo todos contra todos?") },
+            text = {
+                Column {
+                    Text("Cada jugador se enfrenta contra todos los demás. El que acumule más puntos será el campeón.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Image(painter = painterResource(id = R.drawable.roundrobin_example), contentDescription = null)
+                }
+            }
+        )
     }
 }

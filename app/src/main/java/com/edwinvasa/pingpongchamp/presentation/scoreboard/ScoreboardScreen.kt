@@ -30,12 +30,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.edwinvasa.pingpongchamp.R
 import com.edwinvasa.pingpongchamp.presentation.main.Routes
+import com.edwinvasa.pingpongchamp.presentation.roundrobin.RoundRobinViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -44,7 +46,8 @@ fun ScoreboardScreen(
     matchId: String? = null,
     player1: String? = null,
     player2: String? = null,
-    shouldReturnAfterMatch: Boolean = false
+    shouldReturnAfterMatch: Boolean = false,
+    callerRoute: String? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val showBigWinnerText = remember { mutableStateOf(false) }
@@ -62,10 +65,17 @@ fun ScoreboardScreen(
         )
     }
 
-    val parentEntry = remember(navController?.currentBackStackEntry) {
-        navController?.getBackStackEntry(Routes.Bracket.route)
+    val parentEntry = remember(callerRoute) {
+        callerRoute?.let { navController?.getBackStackEntry(it) }
     }
-    val bracketViewModel: BracketViewModel? = parentEntry?.let { hiltViewModel(it) }
+
+    val bracketViewModel: BracketViewModel? = if (callerRoute == Routes.Bracket.route) {
+        parentEntry?.let { hiltViewModel(it) }
+    } else null
+
+    val roundRobinViewModel: RoundRobinViewModel? = if (callerRoute == Routes.RoundRobin.route) {
+        parentEntry?.let { hiltViewModel(it) }
+    } else null
 
     LaunchedEffect(viewModel.redPoints.value, viewModel.greenPoints.value) {
         if (viewModel.shouldTriggerSuddenDeathEvent()) {
@@ -180,7 +190,7 @@ fun ScoreboardScreen(
                             viewModel = viewModel,
                             isCustomMatch = isCustomMatch,
                             matchId = matchId,
-                            bracketViewModel = bracketViewModel
+                            viewModelCaller = bracketViewModel ?: roundRobinViewModel,
                         )
                     }
                 } else {
@@ -195,7 +205,7 @@ fun ScoreboardScreen(
                             viewModel = viewModel,
                             isCustomMatch = isCustomMatch,
                             matchId = matchId,
-                            bracketViewModel = bracketViewModel,
+                            viewModelCaller = bracketViewModel ?: roundRobinViewModel,
                             isHorizontal = true
                         )
                     }
@@ -311,7 +321,7 @@ fun ScoreboardContent(
     viewModel: ScoreboardViewModel,
     isCustomMatch: Boolean,
     matchId: String?,
-    bracketViewModel: BracketViewModel?,
+    viewModelCaller: ViewModel?,
     isHorizontal: Boolean = false
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -353,11 +363,11 @@ fun ScoreboardContent(
                             wins = viewModel.redWins.value,
                             onPlus = {
                                 if (!viewModel.isGameOver) viewModel.redPoints.value++
-                                viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                                viewModel.tryEndGameAutomatically(matchId, viewModelCaller)
                             },
                             onMinus = {
                                 if (!viewModel.isGameOver && viewModel.redPoints.value > 0) viewModel.redPoints.value--
-                                viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                                viewModel.tryEndGameAutomatically(matchId, viewModelCaller)
                             },
                             isServing = viewModel.currentServer == "rojo",
                             enabled = viewModel.winner.value == null,
@@ -375,11 +385,11 @@ fun ScoreboardContent(
                             wins = viewModel.greenWins.value,
                             onPlus = {
                                 if (!viewModel.isGameOver) viewModel.greenPoints.value++
-                                viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                                viewModel.tryEndGameAutomatically(matchId, viewModelCaller)
                             },
                             onMinus = {
                                 if (!viewModel.isGameOver && viewModel.greenPoints.value > 0) viewModel.greenPoints.value--
-                                viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                                viewModel.tryEndGameAutomatically(matchId, viewModelCaller)
                             },
                             isServing = viewModel.currentServer == "verde",
                             enabled = viewModel.winner.value == null,
@@ -422,11 +432,11 @@ fun ScoreboardContent(
                         wins = viewModel.redWins.value,
                         onPlus = {
                             if (!viewModel.isGameOver) viewModel.redPoints.value++
-                            viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                            viewModel.tryEndGameAutomatically(matchId, viewModelCaller)
                         },
                         onMinus = {
                             if (!viewModel.isGameOver && viewModel.redPoints.value > 0) viewModel.redPoints.value--
-                            viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                            viewModel.tryEndGameAutomatically(matchId, viewModelCaller)
                         },
                         isServing = viewModel.currentServer == "rojo",
                         enabled = viewModel.winner.value == null,
@@ -444,11 +454,11 @@ fun ScoreboardContent(
                         wins = viewModel.greenWins.value,
                         onPlus = {
                             if (!viewModel.isGameOver) viewModel.greenPoints.value++
-                            viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                            viewModel.tryEndGameAutomatically(matchId, viewModelCaller)
                         },
                         onMinus = {
                             if (!viewModel.isGameOver && viewModel.greenPoints.value > 0) viewModel.greenPoints.value--
-                            viewModel.tryEndGameAutomatically(matchId, bracketViewModel)
+                            viewModel.tryEndGameAutomatically(matchId, viewModelCaller)
                         },
                         isServing = viewModel.currentServer == "verde",
                         enabled = viewModel.winner.value == null,

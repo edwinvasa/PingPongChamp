@@ -18,4 +18,12 @@ sealed class Routes(val route: String) {
     object Champion : Routes("champion/{championName}") {
         fun createRoute(championName: String) = "champion/$championName"
     }
+    object RoundRobin : Routes("round_robin/{playersJson}") {
+        fun createRoute(playersJson: String) = "round_robin/$playersJson"
+    }
+    object RoundRobinScoreboard : Routes("round_robin_scoreboard/{player1}/{player2}/{matchId}") {
+        fun createRoute(player1: String, player2: String, matchId: String): String {
+            return "round_robin_scoreboard/$player1/$player2/$matchId"
+        }
+    }
 }

@@ -1,4 +1,4 @@
-package com.edwinvasa.pingpongchamp.presentation.bracket
+package com.edwinvasa.pingpongchamp.presentation.championship
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

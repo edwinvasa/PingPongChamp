@@ -12,6 +12,7 @@ import com.edwinvasa.pingpongchamp.presentation.championship.ChampionScreen
 import com.edwinvasa.pingpongchamp.presentation.championship.ChampionshipScreen
 import com.edwinvasa.pingpongchamp.presentation.scoreboard.ScoreboardScreen
 import com.edwinvasa.pingpongchamp.presentation.championship.PlayerRouletteScreen
+import com.edwinvasa.pingpongchamp.presentation.roundrobin.RoundRobinScreen
 import java.net.URLDecoder
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -91,7 +92,8 @@ fun AppNavHost(navController: NavHostController) {
                 player1 = player1,
                 player2 = player2,
                 matchId = matchId,
-                shouldReturnAfterMatch = true
+                shouldReturnAfterMatch = true,
+                callerRoute = Routes.Bracket.route
             )
         }
         composable(
@@ -102,6 +104,39 @@ fun AppNavHost(navController: NavHostController) {
             ChampionScreen(championName) {
                 navController.popBackStack(Routes.Main.route, inclusive = false)
             }
+        }
+        composable(
+            route = Routes.RoundRobin.route,
+            arguments = listOf(navArgument("playersJson") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val json = backStackEntry.arguments?.getString("playersJson") ?: "[]"
+            val players = decodePlayersJson(json)
+
+            RoundRobinScreen(
+                navController = navController,
+                players = players
+            )
+        }
+        composable(
+            route = Routes.RoundRobinScoreboard.route,
+            arguments = listOf(
+                navArgument("player1") { type = NavType.StringType },
+                navArgument("player2") { type = NavType.StringType },
+                navArgument("matchId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val player1 = backStackEntry.arguments?.getString("player1") ?: ""
+            val player2 = backStackEntry.arguments?.getString("player2") ?: ""
+            val matchId = backStackEntry.arguments?.getString("matchId") ?: ""
+
+            ScoreboardScreen(
+                navController = navController,
+                player1 = player1,
+                player2 = player2,
+                matchId = matchId,
+                shouldReturnAfterMatch = true,
+                callerRoute = Routes.RoundRobin.route
+            )
         }
     }
 }

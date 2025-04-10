@@ -2,12 +2,15 @@ package com.edwinvasa.pingpongchamp.presentation.scoreboard
 
 import android.content.Context
 import android.media.MediaPlayer
+import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import com.edwinvasa.pingpongchamp.R
+import com.edwinvasa.pingpongchamp.domain.model.MatchPingPongResult
 import com.edwinvasa.pingpongchamp.presentation.bracket.BracketViewModel
+import com.edwinvasa.pingpongchamp.presentation.roundrobin.RoundRobinViewModel
 
 class ScoreboardViewModel(
     context: Context,
@@ -42,7 +45,7 @@ class ScoreboardViewModel(
     var matchHistory = mutableStateListOf<MatchPingPongResult>()
     var showHistory = mutableStateOf(true)
 
-    var showServeIndicator = mutableStateOf(false)
+    var showServeIndicator = mutableStateOf(true)
     var initialServer = mutableStateOf("rojo")
     var serveChangeFrequency = mutableStateOf(2)
 
@@ -115,7 +118,7 @@ class ScoreboardViewModel(
         return false
     }
 
-    fun tryEndGameAutomatically(matchId: String?, bracketViewModel: BracketViewModel?) {
+    fun tryEndGameAutomatically(matchId: String?, viewModelCaller: ViewModel?) {
         if (!isGameOver) {
             return
         }
@@ -147,7 +150,10 @@ class ScoreboardViewModel(
                     lastSetWinner.value = redName.value
                 }
                 matchId?.let {
-                    bracketViewModel?.setMatchWinnerAndHistoryById(it, redName.value, matchHistory.toList())
+                    when (viewModelCaller) {
+                        is BracketViewModel -> viewModelCaller.setMatchWinnerAndHistoryById(it, redName.value, matchHistory.toList())
+                        is RoundRobinViewModel -> viewModelCaller.setMatchWinnerAndHistoryById(it, redName.value, matchHistory.toList())
+                    }
                 }
             }
 
@@ -164,7 +170,10 @@ class ScoreboardViewModel(
                     lastSetWinner.value = greenName.value
                 }
                 matchId?.let {
-                    bracketViewModel?.setMatchWinnerAndHistoryById(it, greenName.value, matchHistory.toList())
+                    when (viewModelCaller) {
+                        is BracketViewModel -> viewModelCaller.setMatchWinnerAndHistoryById(it, greenName.value, matchHistory.toList())
+                        is RoundRobinViewModel -> viewModelCaller.setMatchWinnerAndHistoryById(it, greenName.value, matchHistory.toList())
+                    }
                 }
             }
         }

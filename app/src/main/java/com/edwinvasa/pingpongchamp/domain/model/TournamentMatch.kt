@@ -1,6 +1,5 @@
 package com.edwinvasa.pingpongchamp.domain.model
 
-import com.edwinvasa.pingpongchamp.presentation.scoreboard.MatchPingPongResult
 import java.util.UUID
 
 data class TournamentMatch(
